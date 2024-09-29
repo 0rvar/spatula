@@ -6,7 +6,7 @@ impl<T> Spanned<T> {
     pub fn new(value: T, span: SimpleSpan<usize>) -> Self {
         Self(value, span)
     }
-    pub fn map_extra<'a, E, I>(value: T, extra: &mut MapExtra<'a, '_, I, E>) -> Self
+    pub fn from_with_extra<'a, E, I>(value: T, extra: &mut MapExtra<'a, '_, I, E>) -> Self
     where
         I: chumsky::input::Input<'a, Span = SimpleSpan<usize>>,
         E: chumsky::extra::ParserExtra<'a, I>,
@@ -142,65 +142,77 @@ An auxiliary recipe may have all the same items as a main recipe.
  */
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ChefRecipe {
-    pub title: String,
-    pub comments: Vec<String>,
-    pub ingredients: Vec<Spanned<Ingredient>>,
+pub struct ChefRecipe<'a> {
+    pub title: &'a str,
+    pub comments: &'a str,
+    pub ingredients: Vec<Spanned<Ingredient<'a>>>,
     pub cooking_time: Option<usize>,
     pub oven_temperature: Option<usize>,
-    pub method: Vec<Spanned<CookingInstruction>>,
+    pub instructions: Vec<Spanned<CookingInstruction<'a>>>,
+    pub serves: Option<Spanned<usize>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum CookingInstruction {
-    Take(String),
-    Put(String, usize),
-    Fold(String, usize),
-    Add(String, usize),
-    Remove(String, usize),
-    Combine(String, usize),
-    Divide(String, usize),
+pub enum CookingInstruction<'a> {
+    Take(&'a str),
+    Put(&'a str, usize),
+    Fold(&'a str, usize),
+    Add(&'a str, usize),
+    Remove(&'a str, usize),
+    Combine(&'a str, usize),
+    Divide(&'a str, usize),
     AddDryIngredients(usize),
-    Liquefy(String),
+    Liquefy(&'a str),
     LiquefyContents(usize),
     Stir(usize, usize),
-    StirIngredient(String, usize),
+    StirIngredient(&'a str, usize),
     Mix(usize),
     Clean(usize),
     Pour(usize, usize),
-    Verb(String),
-    VerbUntil(String, String),
+    Verb(&'a str),
+    VerbUntil(&'a str, &'a str),
     SetAside,
-    Serve(String),
+    Serve(&'a str),
     Refrigerate(usize),
-    ServeWith(String),
+    ServeWith(&'a str),
     Refridgerate(Option<usize>),
     Serves(usize),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Ingredient {
+pub struct Ingredient<'a> {
     pub initial_value: Option<usize>,
-    pub measure_type: Option<IngredientMeasureType>,
-    pub measure: Option<IngredientMeasure>,
-    pub name: String,
+    pub measure: Option<Measure>,
+    pub name: &'a str,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum IngredientMeasureType {
+pub struct Measure {
+    pub measure_type: Option<MeasureType>,
+    pub unit: MeasureUnit,
+}
+
+impl Measure {
+    pub fn new(unit: MeasureUnit, measure_type: Option<MeasureType>) -> Self {
+        Self { measure_type, unit }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum MeasureType {
     Heaped,
     Level,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum IngredientMeasure {
-    G,
-    Kg,
-    Pinch,
-    Ml,
-    L,
-    Dash,
-    Cup,
-    Teaspoon,
-    Tablespoon,
+pub enum MeasureUnit {
+    Grams,
+    Kilograms,
+    Pinches,
+    Milliliters,
+    Liters,
+    Dashes,
+    Cups,
+    Teaspoons,
+    Tablespoons,
 }

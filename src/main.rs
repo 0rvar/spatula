@@ -12,7 +12,7 @@ fn main() {
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| path.clone());
     let contents = std::fs::read_to_string(path).expect("Failed to read file");
-    let ast = match parse(&contents).into_result() {
+    let ast = match parse(&contents) {
         Ok(ast) => ast,
         Err(errors) => {
             for e in errors {
