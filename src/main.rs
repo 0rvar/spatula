@@ -24,7 +24,7 @@ fn main() {
                             .with_color(Color::Red),
                     )
                     .finish()
-                    .print(sources([(filename.clone(), contents.clone())]))
+                    .eprint(sources([(filename.clone(), contents.clone())]))
                     .unwrap();
             }
             std::process::exit(1);

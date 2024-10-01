@@ -17,6 +17,7 @@ ariadne = "0.4.1"
 chumsky = "1.0.0-alpha.7"
 
 [dev-dependencies]
+pretty_assertions = "1.4.1"
 serde = "1.0.210"
 serde_derive = "1.0.210"
 test_each_file = "0.3.3"

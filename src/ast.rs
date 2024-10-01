@@ -153,6 +153,9 @@ pub struct ChefRecipe<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Verb<'a>(pub &'a str);
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CookingInstruction<'a> {
     Take(&'a str),
     Put(&'a str, usize),
@@ -169,11 +172,11 @@ pub enum CookingInstruction<'a> {
     Mix(usize),
     Clean(usize),
     Pour(usize, usize),
-    Verb(&'a str),
-    VerbUntil(&'a str, &'a str),
+    Verb(Verb<'a>, &'a str),
+    VerbUntil(Option<&'a str>, Verb<'a>),
     SetAside,
     Serve(&'a str),
-    Refrigerate(usize),
+    Refrigerate(Option<usize>),
     ServeWith(&'a str),
     Refridgerate(Option<usize>),
     Serves(usize),
