@@ -72,6 +72,11 @@ fn nth<'a>() -> impl Parser<'a, &'a str, usize, extra::Err<Rich<'a, char>>> {
         .padded()
 }
 
+fn serves_instruction<'a>() -> impl Parser<'a, &'a str, usize, extra::Err<Rich<'a, char>>> {
+    just("Serves ")
+        .ignore_then(text::int(10).map(|s: &str| s.parse().unwrap()))
+}
+
 fn instruction<'a>(
 ) -> impl Parser<'a, &'a str, Spanned<CookingInstruction<'a>>, extra::Err<Rich<'a, char>>> {
     let dot = just('.').ignored();
@@ -267,20 +272,6 @@ fn instruction<'a>(
                 .map(|(from, to)| CookingInstruction::Pour(from.unwrap_or(0), to.unwrap_or(0))),
         )
         .or(
-            // Verb [the ingredient] until verbed.
-            verb()
-                .then(just(" "))
-                .ignore_then(
-                    just("the ").or_not()
-                        .ignore_then(ingredient_name())
-                        .then_ignore(just(" "))
-                        .or_not(),
-                )
-                .then_ignore(just("until "))
-                .then(verb())
-                .map(|(ingredient, until)| CookingInstruction::VerbUntil(ingredient, until)),
-        )
-        .or(
             // Set aside.
             just("Set aside").to(CookingInstruction::SetAside),
         )
@@ -300,6 +291,23 @@ fn instruction<'a>(
                     .or_not()
                 )
                 .map(CookingInstruction::Refrigerate)
+        )
+        .or(
+            serves_instruction().map(CookingInstruction::Serves)
+        )
+        .or(
+            // Verb [the ingredient] until verbed.
+            verb()
+                .then(just(" "))
+                .ignore_then(
+                    just("the ").or_not()
+                        .ignore_then(ingredient_name())
+                        .then_ignore(just(" "))
+                        .or_not(),
+                )
+                .then_ignore(just("until "))
+                .then(verb())
+                .map(|(ingredient, until)| CookingInstruction::VerbUntil(ingredient, until)),
         )
         .or(
             // Verb the ingredient.
@@ -333,9 +341,7 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<ChefRecipe<'a>>, extra::Err<Rich
         .separated_by(just(".").then(just(" ").or(line_break())))
         .collect();
 
-    let serves = double_line_break()
-        .ignore_then(just("Serves "))
-        .ignore_then(text::int(10).map(|s: &str| s.parse().unwrap()))
+    let serves = double_line_break().ignore_then(serves_instruction())
         .then_ignore(just("."))
         .map_with(Spanned::from_with_extra)
         .or_not();
@@ -696,6 +702,13 @@ mod tests {
     }
 
     #[test]
+    fn test_serves_instruction() {
+        let input = "Serves 5";
+        let result = parse!(instruction(), input);
+        assert_eq!(result.value(), &CookingInstruction::Serves(5));
+    }
+
+    #[test]
     fn test_parse_minimal_recipe() {
         let input = r#"
 Quine Relay Coffee.
@@ -742,5 +755,27 @@ Method.
 Put vanilla bean into mixing bowl. Refrigerate. Heat white sugar until melted.
         "#.trim();
         parse!(parser(), input);
+    }
+
+    #[test]
+    fn test_with_serves_instruction_in_list() {
+        let input = r#"
+Moose gulasch.
+
+Ingredients.
+1 moose
+
+Method.
+Eat moose. Serves 1.
+
+Serves 1.
+"#.trim();
+        let recipe = parse!(parser(), input);
+        let recipe = recipe.first().unwrap();
+        let instructions = recipe.instructions.iter().map(Spanned::value).collect::<Vec<_>>();
+        assert_eq!(instructions, vec![
+            &CookingInstruction::Verb(Verb("Eat"), "moose"),
+            &CookingInstruction::Serves(1)
+        ]);
     }
 }
