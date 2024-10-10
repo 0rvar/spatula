@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use ariadne::{sources, Color, Label, Report, ReportKind};
-use spatula::parser::{parse, Instruction, ParseError, Spanned};
+use spatula::{
+    parser::{parse, Instruction, ParseError, Spanned},
+    validator,
+};
 
 fn main() {
     let path = std::env::args()
@@ -12,7 +15,7 @@ fn main() {
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| path.clone());
     let contents = std::fs::read_to_string(path).expect("Failed to read file");
-    let ast = match parse(&contents) {
+    let program = match parse(&contents) {
         Ok(ast) => ast,
         Err(error) => {
             match error {
@@ -46,7 +49,21 @@ fn main() {
             std::process::exit(1);
         }
     };
-    println!("{:#?}", ast);
+
+    if let Err(e) = validator::validate(&program) {
+        Report::build(ReportKind::Error, filename.clone(), e.span.start)
+            .with_message(e.message.clone())
+            .with_label(
+                Label::new((filename.clone(), e.span.into_range()))
+                    .with_message(e.message)
+                    .with_color(Color::Red),
+            )
+            .finish()
+            .eprint(sources([(filename.clone(), contents.clone())]))
+            .unwrap();
+        std::process::exit(1);
+    }
+    println!("{:#?}", program);
 
     // for recipe in [ast.main].into_iter().chain(ast.auxilary.into_values()) {
     //     for Spanned(instruction, span) in recipe.instructions {

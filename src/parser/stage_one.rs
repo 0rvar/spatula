@@ -323,7 +323,7 @@ fn instruction<'a>(
 }
 
 fn parser<'a>() -> impl Parser<'a, &'a str, Vec<ChefRecipe<'a, CookingInstruction<'a>>>, extra::Err<Rich<'a, char>>> {
-    let title = any().and_is(line_break().not()).repeated().to_slice();
+    let title = any().and_is(line_break().not()).and_is(just('.').not()).repeated().to_slice().then_ignore(just(".").or_not());
     let ingredients_header = || just("Ingredients.").then(line_break());
 
     let comments = any()

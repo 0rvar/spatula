@@ -8,7 +8,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct ChefProgram<'a> {
     pub main: ChefRecipe<'a, Instruction<'a>>,
-    pub auxilary: HashMap<&'a str, ChefRecipe<'a, Instruction<'a>>>,
+    pub auxilary: HashMap<String, ChefRecipe<'a, Instruction<'a>>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

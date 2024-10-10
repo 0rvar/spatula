@@ -23,8 +23,8 @@ pub fn parse<'a>(
     let main = parse_recipe(main)?;
     let auxilary = functions
         .map(parse_recipe)
-        .map(|recipe| recipe.map(|recipe| (recipe.title, recipe)))
-        .collect::<Result<HashMap<&'a str, ChefRecipe<'a, Instruction<'a>>>, ParseError>>()?;
+        .map(|recipe| recipe.map(|recipe| (recipe.title.to_lowercase(), recipe)))
+        .collect::<Result<HashMap<String, ChefRecipe<'a, Instruction<'a>>>, ParseError>>()?;
     Ok(ChefProgram { main, auxilary })
 }
 

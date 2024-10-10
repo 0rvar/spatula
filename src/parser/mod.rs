@@ -7,7 +7,7 @@ mod stage_two_ast;
 
 pub use ast::*;
 pub use errors::ParseError;
-pub use stage_two_ast::{ChefProgram, Instruction};
+pub use stage_two_ast::{ChefProgram, Instruction, VerbLoop};
 
 pub fn parse<'a>(input: &'a str) -> Result<ChefProgram<'a>, ParseError> {
     let initial_ast = stage_one::parse(input)?;
