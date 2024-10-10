@@ -228,7 +228,8 @@ fn instruction<'a>(
                 .then_ignore(just("mixing bowl ").or_not())
                 .then_ignore(just("for "))
                 .then(text::int(10).map(|s: &str| s.parse().unwrap()))
-                .then_ignore(just(" minutes"))
+                .then_ignore(just(" minute"))
+                .then_ignore(just("s").or_not())
                 .map(|(bowl, minutes)| CookingInstruction::Stir(bowl.unwrap_or(0), minutes)),
         )
         .or(
