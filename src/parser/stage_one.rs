@@ -15,20 +15,20 @@ fn measure_unit<'a>() -> impl Parser<'a, &'a str, MeasureUnit, extra::Err<Rich<'
     just("g")
         .map(|_| MeasureUnit::Grams)
         .or(just("kg").map(|_| MeasureUnit::Kilograms))
-        .or(just("pinch").map(|_| MeasureUnit::Pinches))
         .or(just("pinches").map(|_| MeasureUnit::Pinches))
+        .or(just("pinch").map(|_| MeasureUnit::Pinches))
         .or(just("ml").map(|_| MeasureUnit::Milliliters))
         .or(just("l").map(|_| MeasureUnit::Liters))
-        .or(just("dash").map(|_| MeasureUnit::Dashes))
         .or(just("dashes").map(|_| MeasureUnit::Dashes))
-        .or(just("cup").map(|_| MeasureUnit::Cups))
+        .or(just("dash").map(|_| MeasureUnit::Dashes))
         .or(just("cups").map(|_| MeasureUnit::Cups))
+        .or(just("cup").map(|_| MeasureUnit::Cups))
         .or(just("tsp").map(|_| MeasureUnit::Teaspoons))
-        .or(just("teaspoon").map(|_| MeasureUnit::Teaspoons))
         .or(just("teaspoons").map(|_| MeasureUnit::Teaspoons))
+        .or(just("teaspoon").map(|_| MeasureUnit::Teaspoons))
         .or(just("tbsp").map(|_| MeasureUnit::Tablespoons))
-        .or(just("tablespoon").map(|_| MeasureUnit::Tablespoons))
         .or(just("tablespoons").map(|_| MeasureUnit::Tablespoons))
+        .or(just("tablespoon").map(|_| MeasureUnit::Tablespoons)).then_ignore(just(" "))
 }
 
 fn measure_type<'a>() -> impl Parser<'a, &'a str, MeasureType, extra::Err<Rich<'a, char>>> {
@@ -47,13 +47,13 @@ fn ingredient<'a>() -> impl Parser<'a, &'a str, Spanned<CookingIngredient<'a>>, 
         .at_least(2)
         .to_slice();
 
-    initial_value
+    initial_value.padded()
         .or_not()
         .then(
             measure_type()
                 .padded()
                 .or_not()
-                .then(measure_unit().padded())
+                .then(measure_unit())
                 .or_not(),
         )
         .then(ingredient_name)
@@ -82,6 +82,9 @@ fn instruction<'a>(
 ) -> impl Parser<'a, &'a str, Spanned<CookingInstruction<'a>>, extra::Err<Rich<'a, char>>> {
     let dot = just('.').ignored();
     let ingredient_name = || {
+        just("the ")
+            .or_not()
+            .ignore_then(
         any()
             .and_is(line_break().not())
             .and_is(dot.not())
@@ -90,7 +93,7 @@ fn instruction<'a>(
             .and_is(just(" to ").not())
             .and_is(just(" until ").not())
             .repeated()
-            .to_slice()
+            .to_slice())
     };
     let verb = || text::ascii::ident().map(Verb);
     // Take ingredient from refrigerator.
@@ -424,6 +427,28 @@ mod tests {
                     Some(MeasureType::Heaped)
                 )),
                 name: "flour"
+            }
+        );
+
+        let input = "1 egg\n";
+        let result = parse!(ingredient(), input);
+        assert_eq!(
+            result.value(),
+            &CookingIngredient {
+                initial_value: Some(1),
+                measure: None,
+                name: "egg"
+            }
+        );
+
+        let input = "111 cups oil\n";
+        let result = parse!(ingredient(), input);
+        assert_eq!(
+            result.value(),
+            &CookingIngredient {
+                initial_value: Some(111),
+                measure: Some(CookingMeasure::new(MeasureUnit::Cups, None)),
+                name: "oil"
             }
         );
     }
