@@ -2,16 +2,15 @@ use std::collections::HashMap;
 
 use chumsky::span::SimpleSpan;
 
+use crate::parser::stage_two_ast::IngredientType;
+
 use super::{
-    ast::ChefRecipe,
-    errors::ParseError,
-    stage_one_ast::CookingInstruction,
-    stage_two_ast::{ChefProgram, Instruction, VerbLoop},
-    Spanned,
+    stage_one_ast::{CookingIngredient, CookingInstruction},
+    ChefProgram, ChefRecipe, Ingredient, Instruction, ParseError, Spanned, VerbLoop,
 };
 
 pub fn parse<'a>(
-    input: Vec<ChefRecipe<'a, CookingInstruction<'a>>>,
+    input: Vec<ChefRecipe<'a, CookingInstruction<'a>, CookingIngredient<'a>>>,
 ) -> Result<ChefProgram<'a>, ParseError> {
     let mut functions = input.into_iter();
     let Some(main) = functions.next() else {
@@ -24,13 +23,13 @@ pub fn parse<'a>(
     let auxilary = functions
         .map(parse_recipe)
         .map(|recipe| recipe.map(|recipe| (recipe.title.to_lowercase(), recipe)))
-        .collect::<Result<HashMap<String, ChefRecipe<'a, Instruction<'a>>>, ParseError>>()?;
+        .collect::<Result<HashMap<String, _>, ParseError>>()?;
     Ok(ChefProgram { main, auxilary })
 }
 
 fn parse_recipe<'a>(
-    recipe: ChefRecipe<'a, CookingInstruction<'a>>,
-) -> Result<ChefRecipe<'a, Instruction<'a>>, ParseError> {
+    recipe: ChefRecipe<'a, CookingInstruction<'a>, CookingIngredient<'a>>,
+) -> Result<ChefRecipe<'a, Instruction<'a>, Ingredient<'a>>, ParseError> {
     let ChefRecipe {
         title,
         comments,
@@ -41,6 +40,48 @@ fn parse_recipe<'a>(
         serves,
     } = recipe;
 
+    let instructions = parse_instructions(instructions)?;
+    let ingredients = parse_ingredients(ingredients)?;
+
+    Ok(ChefRecipe {
+        title,
+        comments,
+        ingredients,
+        cooking_time,
+        oven_temperature,
+        instructions,
+        serves,
+    })
+}
+
+fn parse_ingredients<'a>(
+    ingredients: Vec<Spanned<CookingIngredient<'a>>>,
+) -> Result<Vec<Spanned<Ingredient<'a>>>, ParseError> {
+    ingredients
+        .into_iter()
+        .map(|Spanned(ingredient, span)| {
+            let CookingIngredient {
+                name,
+                measure,
+                initial_value,
+            } = ingredient;
+            let ingredient_type = IngredientType::parse(measure, &span)?;
+
+            Ok(Spanned::new(
+                Ingredient {
+                    name,
+                    initial_value,
+                    r#type: ingredient_type,
+                },
+                span,
+            ))
+        })
+        .collect::<Result<Vec<_>, ParseError>>()
+}
+
+fn parse_instructions<'a>(
+    instructions: Vec<Spanned<CookingInstruction<'a>>>,
+) -> Result<Vec<Spanned<Instruction<'a>>>, ParseError> {
     let mut instructions_iter = instructions.into_iter();
     let mut loop_stack: Vec<(VerbLoop, SimpleSpan<usize>)> = vec![];
     let mut instructions = vec![];
@@ -138,13 +179,5 @@ fn parse_recipe<'a>(
         }
     }
 
-    Ok(ChefRecipe {
-        title,
-        comments,
-        ingredients,
-        cooking_time,
-        oven_temperature,
-        instructions,
-        serves,
-    })
+    Ok(instructions)
 }

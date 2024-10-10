@@ -135,3 +135,41 @@ pub enum CookingInstruction<'a> {
     /// This statement writes to STDOUT the contents of the first number-of-diners baking dishes. It begins with the 1st baking dish, removing values from the top one by one and printing them until the dish is empty, then progresses to the next dish, until all the dishes have been printed. The serves statement is optional, but is required if the recipe is to output anything!
     Serves(usize),
 }
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct CookingIngredient<'a> {
+    pub initial_value: Option<usize>,
+    pub measure: Option<CookingMeasure>,
+    pub name: &'a str,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct CookingMeasure {
+    pub measure_type: Option<MeasureType>,
+    pub unit: MeasureUnit,
+}
+
+impl CookingMeasure {
+    pub fn new(unit: MeasureUnit, measure_type: Option<MeasureType>) -> Self {
+        Self { measure_type, unit }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum MeasureType {
+    Heaped,
+    Level,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum MeasureUnit {
+    Grams,
+    Kilograms,
+    Pinches,
+    Milliliters,
+    Liters,
+    Dashes,
+    Cups,
+    Teaspoons,
+    Tablespoons,
+}

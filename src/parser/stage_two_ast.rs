@@ -1,14 +1,19 @@
 use std::collections::HashMap;
 
+use chumsky::span::SimpleSpan;
+
+use crate::parser::{stage_one_ast::MeasureType, ParseError};
+
 use super::{
     ast::{ChefRecipe, Verb},
+    stage_one_ast::{CookingMeasure, MeasureUnit},
     Spanned,
 };
 
 #[derive(Debug, Clone)]
 pub struct ChefProgram<'a> {
-    pub main: ChefRecipe<'a, Instruction<'a>>,
-    pub auxilary: HashMap<String, ChefRecipe<'a, Instruction<'a>>>,
+    pub main: ChefRecipe<'a, Instruction<'a>, Ingredient<'a>>,
+    pub auxilary: HashMap<String, ChefRecipe<'a, Instruction<'a>, Ingredient<'a>>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -79,4 +84,65 @@ pub struct VerbLoop<'a> {
     pub verb: Verb<'a>,
     pub ingredient: &'a str,
     pub instructions: Vec<Spanned<Instruction<'a>>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Ingredient<'a> {
+    pub name: &'a str,
+    pub r#type: IngredientType,
+    pub initial_value: Option<usize>,
+}
+
+// Ingredients are wet or dry.
+/// * g | kg | pinch[es] : These always indicate dry measures.
+/// * ml | l | dash[es] : These always indicate liquid measures.
+/// * cup[s] | teaspoon[s] | tablespoon[s] : These indicate measures which may be either dry or liquid.
+/// The optional measure-type may be any of the following:
+/// * heaped | level : These indicate that the measure is dry.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum IngredientType {
+    Dry,
+    Wet,
+}
+
+impl IngredientType {
+    pub fn parse(
+        measure: Option<CookingMeasure>,
+        span: &SimpleSpan<usize>,
+    ) -> Result<IngredientType, ParseError<'static>> {
+        let Some(measure) = measure else {
+            return Ok(IngredientType::Dry);
+        };
+
+        macro_rules! assert_no_type {
+            () => {
+                if let Some(_) = measure.measure_type {
+                    return Err(ParseError::SecondStage(
+                        format!(
+                            "Canot use heapder/level specifier with unit {:?}",
+                            measure.unit
+                        ),
+                        span.clone(),
+                    ));
+                }
+            };
+        }
+
+        let r#type = match measure.unit {
+            MeasureUnit::Grams | MeasureUnit::Kilograms | MeasureUnit::Pinches => {
+                assert_no_type!();
+                IngredientType::Dry
+            }
+            MeasureUnit::Milliliters | MeasureUnit::Liters | MeasureUnit::Dashes => {
+                assert_no_type!();
+                IngredientType::Wet
+            }
+            _ => match measure.measure_type {
+                None | Some(MeasureType::Heaped) => IngredientType::Dry,
+                Some(MeasureType::Level) => IngredientType::Wet,
+            },
+        };
+
+        Ok(r#type)
+    }
 }

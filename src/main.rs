@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use ariadne::{sources, Color, Label, Report, ReportKind};
 use spatula::{
-    parser::{parse, Instruction, ParseError, Spanned},
+    parser::{parse, ParseError},
     validator,
 };
 

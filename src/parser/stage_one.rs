@@ -37,7 +37,7 @@ fn measure_type<'a>() -> impl Parser<'a, &'a str, MeasureType, extra::Err<Rich<'
         .or(just("level").map(|_| MeasureType::Level))
 }
 
-fn ingredient<'a>() -> impl Parser<'a, &'a str, Spanned<Ingredient<'a>>, extra::Err<Rich<'a, char>>>
+fn ingredient<'a>() -> impl Parser<'a, &'a str, Spanned<CookingIngredient<'a>>, extra::Err<Rich<'a, char>>>
 {
     // [initial-value] [[measure-type] measure] ingredient-name
     let initial_value = text::int(10).map(|s: &str| s.parse().unwrap());
@@ -58,9 +58,9 @@ fn ingredient<'a>() -> impl Parser<'a, &'a str, Spanned<Ingredient<'a>>, extra::
         )
         .then(ingredient_name)
         .then_ignore(line_break())
-        .map(|((initial_value, measure), ingredient_name)| Ingredient {
+        .map(|((initial_value, measure), ingredient_name)| CookingIngredient {
             initial_value,
-            measure: measure.map(|m| Measure::new(m.1, m.0)),
+            measure: measure.map(|m| CookingMeasure::new(m.1, m.0)),
             name: ingredient_name,
         })
         .map_with(Spanned::from_with_extra)
@@ -322,7 +322,7 @@ fn instruction<'a>(
         .map_with(Spanned::from_with_extra)
 }
 
-fn parser<'a>() -> impl Parser<'a, &'a str, Vec<ChefRecipe<'a, CookingInstruction<'a>>>, extra::Err<Rich<'a, char>>> {
+fn parser<'a>() -> impl Parser<'a, &'a str, Vec<ChefRecipe<'a, CookingInstruction<'a>, CookingIngredient<'a>>>, extra::Err<Rich<'a, char>>> {
     let title = any().and_is(line_break().not()).and_is(just('.').not()).repeated().to_slice().then_ignore(just(".").or_not());
     let ingredients_header = || just("Ingredients.").then(line_break());
 
@@ -374,7 +374,7 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<ChefRecipe<'a, CookingInstructio
         .padded()
 }
 
-pub fn parse<'a>(input: &'a str) -> Result<Vec<ChefRecipe<'a, CookingInstruction<'a>>>, ParseError> {
+pub fn parse<'a>(input: &'a str) -> Result<Vec<ChefRecipe<'a, CookingInstruction<'a>, CookingIngredient<'a>>>, ParseError> {
     parser().parse(input).into_result().map_err(ParseError::FirstStage)
 }
 
@@ -417,9 +417,9 @@ mod tests {
         let result = parse!(ingredient(), input);
         assert_eq!(
             result.value(),
-            &Ingredient {
+            &CookingIngredient {
                 initial_value: Some(1),
-                measure: Some(Measure::new(
+                measure: Some(CookingMeasure::new(
                     MeasureUnit::Teaspoons,
                     Some(MeasureType::Heaped)
                 )),
