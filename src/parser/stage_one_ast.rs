@@ -1,31 +1,4 @@
-use chumsky::{input::MapExtra, span::SimpleSpan};
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Spanned<T>(T, SimpleSpan<usize>);
-impl<T> Spanned<T> {
-    pub fn new(value: T, span: SimpleSpan<usize>) -> Self {
-        Self(value, span)
-    }
-    pub fn from_with_extra<'a, E, I>(value: T, extra: &mut MapExtra<'a, '_, I, E>) -> Self
-    where
-        I: chumsky::input::Input<'a, Span = SimpleSpan<usize>>,
-        E: chumsky::extra::ParserExtra<'a, I>,
-    {
-        Self(value, extra.span())
-    }
-
-    pub fn value(&self) -> &T {
-        &self.0
-    }
-
-    pub fn into_value(self) -> T {
-        self.0
-    }
-
-    pub fn span(&self) -> SimpleSpan<usize> {
-        self.1
-    }
-}
+use super::ast::Verb;
 
 /**
  * Introduction
@@ -97,20 +70,6 @@ An auxiliary recipe may have all the same items as a main recipe.
  */
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ChefRecipe<'a> {
-    pub title: &'a str,
-    pub comments: &'a str,
-    pub ingredients: Vec<Spanned<Ingredient<'a>>>,
-    pub cooking_time: Option<usize>,
-    pub oven_temperature: Option<usize>,
-    pub instructions: Vec<Spanned<CookingInstruction<'a>>>,
-    pub serves: Option<Spanned<usize>>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Verb<'a>(pub &'a str);
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CookingInstruction<'a> {
     /// Take ingredient from refrigerator.
     /// This reads a numeric value from STDIN into the ingredient named, overwriting any previous value.
@@ -175,42 +134,4 @@ pub enum CookingInstruction<'a> {
     /// Serves number-of-diners.
     /// This statement writes to STDOUT the contents of the first number-of-diners baking dishes. It begins with the 1st baking dish, removing values from the top one by one and printing them until the dish is empty, then progresses to the next dish, until all the dishes have been printed. The serves statement is optional, but is required if the recipe is to output anything!
     Serves(usize),
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Ingredient<'a> {
-    pub initial_value: Option<usize>,
-    pub measure: Option<Measure>,
-    pub name: &'a str,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Measure {
-    pub measure_type: Option<MeasureType>,
-    pub unit: MeasureUnit,
-}
-
-impl Measure {
-    pub fn new(unit: MeasureUnit, measure_type: Option<MeasureType>) -> Self {
-        Self { measure_type, unit }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum MeasureType {
-    Heaped,
-    Level,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum MeasureUnit {
-    Grams,
-    Kilograms,
-    Pinches,
-    Milliliters,
-    Liters,
-    Dashes,
-    Cups,
-    Teaspoons,
-    Tablespoons,
 }

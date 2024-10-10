@@ -1,6 +1,7 @@
 use chumsky::prelude::*;
 
-use crate::ast::*;
+use super::{ast::*, errors::ParseError};
+use crate::parser::stage_one_ast::*;
 
 fn line_break<'a>() -> impl Parser<'a, &'a str, &'a str, extra::Err<Rich<'a, char>>> {
     just('\r').or_not().then(just('\n')).to_slice()
@@ -321,7 +322,7 @@ fn instruction<'a>(
         .map_with(Spanned::from_with_extra)
 }
 
-fn parser<'a>() -> impl Parser<'a, &'a str, Vec<ChefRecipe<'a>>, extra::Err<Rich<'a, char>>> {
+fn parser<'a>() -> impl Parser<'a, &'a str, Vec<ChefRecipe<'a, CookingInstruction<'a>>>, extra::Err<Rich<'a, char>>> {
     let title = any().and_is(line_break().not()).repeated().to_slice();
     let ingredients_header = || just("Ingredients.").then(line_break());
 
@@ -373,8 +374,8 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<ChefRecipe<'a>>, extra::Err<Rich
         .padded()
 }
 
-pub fn parse<'a>(input: &'a str) -> Result<Vec<ChefRecipe>, Vec<Rich<'a, char>>> {
-    parser().parse(input).into_result()
+pub fn parse<'a>(input: &'a str) -> Result<Vec<ChefRecipe<'a, CookingInstruction<'a>>>, ParseError> {
+    parser().parse(input).into_result().map_err(ParseError::FirstStage)
 }
 
 #[cfg(test)]
