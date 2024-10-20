@@ -15,14 +15,14 @@ pub struct ChefRecipe<'a, T, I> {
 pub struct Verb<'a>(pub &'a str);
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct Spanned<T>(pub T, pub SimpleSpan<usize>);
+pub struct Spanned<T>(pub T, pub SimpleSpan);
 impl<T> Spanned<T> {
-    pub fn new(value: T, span: SimpleSpan<usize>) -> Self {
+    pub fn new(value: T, span: SimpleSpan) -> Self {
         Self(value, span)
     }
     pub fn from_with_extra<'a, E, I>(value: T, extra: &mut MapExtra<'a, '_, I, E>) -> Self
     where
-        I: chumsky::input::Input<'a, Span = SimpleSpan<usize>>,
+        I: chumsky::input::Input<'a, Span = SimpleSpan>,
         E: chumsky::extra::ParserExtra<'a, I>,
     {
         Self(value, extra.span())
@@ -36,7 +36,7 @@ impl<T> Spanned<T> {
         self.0
     }
 
-    pub fn span(&self) -> SimpleSpan<usize> {
+    pub fn span(&self) -> SimpleSpan {
         self.1
     }
 }

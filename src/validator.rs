@@ -17,7 +17,7 @@ pub fn validate<'a>(program: &ChefProgram<'a>) -> Result<(), SpatulaError> {
 fn validate_ingredient_references(
     recipe: &ChefRecipe<'_, Instruction<'_>, Ingredient<'_>>,
 ) -> Result<(), SpatulaError> {
-    let ingredients_by_name = recipe
+    let available_ingredients_by_name = recipe
         .ingredients
         .iter()
         .map(|Spanned(ingredient, _)| ingredient.name.to_lowercase())
@@ -35,11 +35,11 @@ fn validate_ingredient_references(
             | Instruction::Divide(i, _)
             | Instruction::Liquefy(i)
             | Instruction::StirIngredient(i, _) => {
-                if !ingredients_by_name.contains(i.to_lowercase().as_str()) {
-                    errors.push(SpatulaError {
-                        message: format!("Ingredient `{}` not found", i),
-                        span: span.clone(),
-                    });
+                if !available_ingredients_by_name.contains(i.to_lowercase().as_str()) {
+                    errors.push(SpatulaError::new(
+                        format!("Ingredient `{}` not found", i),
+                        *span,
+                    ));
                 }
             }
             _ => {}
@@ -66,7 +66,7 @@ fn validate_recipe_references(program: &ChefProgram<'_>) -> Result<(), SpatulaEr
         vec![],
         &|Spanned(instr, span), references| {
             if let Instruction::ServeWith(recipe) = instr {
-                references.push((recipe.to_string(), span.clone()));
+                references.push((recipe.to_string(), *span));
             }
         },
     );
@@ -77,12 +77,10 @@ fn validate_recipe_references(program: &ChefProgram<'_>) -> Result<(), SpatulaEr
             .auxilary
             .contains_key(reference.to_lowercase().as_str())
         {
-            return Err(SpatulaError {
-                message: format!(
-                    "Recipe `{reference}` not found. Available recipes: {available_recipes:?}"
-                ),
+            return Err(SpatulaError::new(
+                format!("Recipe `{reference}` not found. Available recipes: {available_recipes:?}"),
                 span,
-            });
+            ));
         }
     }
 

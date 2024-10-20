@@ -89,7 +89,7 @@ pub struct VerbLoop<'a> {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Ingredient<'a> {
     pub name: &'a str,
-    pub r#type: IngredientType,
+    pub kind: IngredientKind,
     pub initial_value: Option<usize>,
 }
 
@@ -99,19 +99,19 @@ pub struct Ingredient<'a> {
 /// * cup[s] | teaspoon[s] | tablespoon[s] : These indicate measures which may be either dry or liquid.
 /// The optional measure-type may be any of the following:
 /// * heaped | level : These indicate that the measure is dry.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum IngredientType {
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Copy)]
+pub enum IngredientKind {
     Dry,
     Wet,
 }
 
-impl IngredientType {
+impl IngredientKind {
     pub fn parse(
         measure: Option<CookingMeasure>,
-        span: &SimpleSpan<usize>,
-    ) -> Result<IngredientType, ParseError<'static>> {
+        span: &SimpleSpan,
+    ) -> Result<IngredientKind, ParseError<'static>> {
         let Some(measure) = measure else {
-            return Ok(IngredientType::Dry);
+            return Ok(IngredientKind::Dry);
         };
 
         macro_rules! assert_no_type {
@@ -122,7 +122,7 @@ impl IngredientType {
                             "Canot use heapder/level specifier with unit {:?}",
                             measure.unit
                         ),
-                        span.clone(),
+                        *span,
                     ));
                 }
             };
@@ -131,15 +131,15 @@ impl IngredientType {
         let r#type = match measure.unit {
             MeasureUnit::Grams | MeasureUnit::Kilograms | MeasureUnit::Pinches => {
                 assert_no_type!();
-                IngredientType::Dry
+                IngredientKind::Dry
             }
             MeasureUnit::Milliliters | MeasureUnit::Liters | MeasureUnit::Dashes => {
                 assert_no_type!();
-                IngredientType::Wet
+                IngredientKind::Wet
             }
             _ => match measure.measure_type {
-                None | Some(MeasureType::Heaped) => IngredientType::Dry,
-                Some(MeasureType::Level) => IngredientType::Wet,
+                None | Some(MeasureType::Heaped) => IngredientKind::Dry,
+                Some(MeasureType::Level) => IngredientKind::Wet,
             },
         };
 

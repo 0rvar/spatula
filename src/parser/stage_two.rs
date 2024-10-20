@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chumsky::span::SimpleSpan;
 
-use crate::parser::stage_two_ast::IngredientType;
+use crate::parser::stage_two_ast::IngredientKind;
 
 use super::{
     stage_one_ast::{CookingIngredient, CookingInstruction},
@@ -65,13 +65,13 @@ fn parse_ingredients<'a>(
                 measure,
                 initial_value,
             } = ingredient;
-            let ingredient_type = IngredientType::parse(measure, &span)?;
+            let kind = IngredientKind::parse(measure, &span)?;
 
             Ok(Spanned::new(
                 Ingredient {
                     name,
                     initial_value,
-                    r#type: ingredient_type,
+                    kind,
                 },
                 span,
             ))
@@ -83,7 +83,7 @@ fn parse_instructions<'a>(
     instructions: Vec<Spanned<CookingInstruction<'a>>>,
 ) -> Result<Vec<Spanned<Instruction<'a>>>, ParseError> {
     let mut instructions_iter = instructions.into_iter();
-    let mut loop_stack: Vec<(VerbLoop, SimpleSpan<usize>)> = vec![];
+    let mut loop_stack: Vec<(VerbLoop, SimpleSpan)> = vec![];
     let mut instructions = vec![];
 
     loop {
@@ -94,7 +94,7 @@ fn parse_instructions<'a>(
                         "Recipe ends during `{}` - matching `until` not found",
                         current_loop.verb.0
                     ),
-                    loop_span.clone(),
+                    *loop_span,
                 ));
             }
             break;
@@ -154,7 +154,7 @@ fn parse_instructions<'a>(
                         ingredient,
                         instructions: vec![],
                     },
-                    span.clone(),
+                    span,
                 ));
                 continue;
             }
@@ -162,7 +162,7 @@ fn parse_instructions<'a>(
                 let Some((current_loop, mut loop_span)) = loop_stack.pop() else {
                     return Err(ParseError::SecondStage(
                         format!("`until` {} with no matching initial {}", verb.0, verb.0),
-                        span.clone(),
+                        span,
                     ));
                 };
 
